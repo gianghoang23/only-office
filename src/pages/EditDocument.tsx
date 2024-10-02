@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useContext } from "react";
 import WebViewer, { WebViewerInstance } from "@pdftron/webviewer";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
+import { saveAs } from "file-saver";
 const EditDocument = () => {
   const viewer = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<WebViewerInstance>();
@@ -13,7 +14,6 @@ const EditDocument = () => {
     WebViewer.WebComponent(
       {
         path: "/webviewer/lib",
-        enableOfficeEditing: true,
         loadAsPDF: true,
         licenseKey:
           "demo:1727425813883:7e35c6a80300000000a04db2b84ad65fc302d059a10b8e9974aff3ae1a",
@@ -35,7 +35,7 @@ const EditDocument = () => {
         "toolbarGroup-Edit",
       ]);
       if (targetFile) {
-        instance.UI.loadDocument(targetFile);
+        instance.UI.loadDocument(targetFile, {enableOfficeEditing: true});
       }
       instanceRef.current = instance;
     });
@@ -55,6 +55,7 @@ const EditDocument = () => {
         type: "application/office",
       });
       setTargetFile(newFile);
+      saveAs(blob, newFile.name);
       navigate("/");
     }
   };
