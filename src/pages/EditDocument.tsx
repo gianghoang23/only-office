@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useContext } from "react";
+import { useRef, useEffect, useContext } from "react";
 import WebViewer, { WebViewerInstance } from "@pdftron/webviewer";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
@@ -35,7 +35,7 @@ const EditDocument = () => {
         "toolbarGroup-Edit",
       ]);
       if (targetFile) {
-        instance.UI.loadDocument(targetFile, {enableOfficeEditing: true});
+        instance.UI.loadDocument(targetFile, { enableOfficeEditing: true });
       }
       instanceRef.current = instance;
     });
