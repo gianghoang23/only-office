@@ -1,5 +1,5 @@
 import { DocumentEditor } from "@onlyoffice/document-editor-react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 import { v4 as uuidv4 } from "uuid";
 import { saveAs } from "file-saver";
@@ -24,7 +24,6 @@ const onLoadComponentError = function (
 
 export default function App() {
   const connectorRef = useRef<any>();
-  const iframeRef = useRef(null);
   const getFile = () => {
     connectorRef.current.executeMethod(
       "GetFileToDownload",
@@ -69,7 +68,11 @@ export default function App() {
               guid: connectorRef.current.guid,
               items: [
                 {
-                  id: "onClickCustomItem",
+                  id: "onRemoveSelected",
+                  text: "Remove selected content",
+                },
+                {
+                  id: "onDoSomething",
                   text: "Do something",
                 },
               ],
@@ -80,15 +83,21 @@ export default function App() {
     );
 
     // attach event handler to custom context menu item
-
-    connectorRef.current.attachContextMenuClickEvent(
-      "onClickCustomItem",
-      function () {
-        // !currently not working
-        console.log("onClickCustomItem");
-        connectorRef.current.executeMethod("InputText", [
-          "clicked: onClickItem2",
-        ]);
+    connectorRef.current.attachEvent(
+      "onContextMenuClick",
+      function (id: string) {
+        switch (id) {
+          case "onRemoveSelected":
+            connectorRef.current.executeMethod("RemoveSelectedContent");
+            break;
+          case "onDoSomething":
+            connectorRef.current.executeMethod("InputText", [
+              "clicked on Do something",
+            ]);
+            break;
+          default:
+            console.log(id);
+        }
       }
     );
   };
@@ -115,10 +124,9 @@ export default function App() {
               fileType: "docx",
               key: id,
               title: "Example Document Title",
-              url: "http://192.168.1.179:7002/Pat01_JE.docx",
+              url: "http://192.168.1.179:7002/Thisisapen.docx",
             },
             editorConfig: {
-              plugins: {},
               user: {
                 id: id,
                 name: "User",
@@ -126,6 +134,7 @@ export default function App() {
               customization: {
                 compactToolbar: true,
                 hideRulers: true,
+                hideRightMenu: true,
                 features: {
                   spellcheck: {
                     mode: false,
