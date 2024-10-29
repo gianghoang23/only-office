@@ -3,6 +3,7 @@ import { useRef } from "react";
 
 import { v4 as uuidv4 } from "uuid";
 import { saveAs } from "file-saver";
+import axios from "axios";
 const onLoadComponentError = function (
   errorCode: number,
   errorDescription: string
@@ -24,7 +25,15 @@ const onLoadComponentError = function (
 
 export default function App() {
   const connectorRef = useRef<any>();
-  const getFile = () => {
+  const getFile = async () => {
+    const data = await axios.post(
+      "http://172.19.192.1:86/coauthoring/CommandService.ashx",
+      {
+        c: "forcesave",
+        key: id,
+      }
+    );
+    console.log(data);
     connectorRef.current.executeMethod(
       "GetFileToDownload",
       ["docx"],
@@ -118,13 +127,13 @@ export default function App() {
       <div style={{ width: "80%", height: "100vh", position: "relative" }}>
         <DocumentEditor
           id="docxEditor"
-          documentServerUrl="http://172.21.16.1:82/"
+          documentServerUrl="http://172.19.192.1:86/"
           config={{
             document: {
               fileType: "docx",
               key: id,
               title: "Example Document Title",
-              url: "http://192.168.1.179:7002/Thisisapen.docx",
+              url: "http://192.168.1.7:8002/Thisisapen.docx",
             },
             editorConfig: {
               user: {
