@@ -23,8 +23,14 @@ const onLoadComponentError = function (
 };
 
 export default function App() {
+  const fileUrl = "http://192.168.1.179:7002/Sổ làm việc1.xlsx";
+
   const connectorRef = useRef<any>();
-  const iframeRef = useRef(null);
+
+  const handleGetDocumentType = (docUrl: string) => {
+    return docUrl.substring(docUrl.lastIndexOf(".") + 1);
+  };
+
   const getFile = () => {
     connectorRef.current.executeMethod(
       "GetFileToDownload",
@@ -72,6 +78,10 @@ export default function App() {
                   id: "onClickCustomItem",
                   text: "Do something",
                 },
+                {
+                  id: "onDisplayBeforeTranslation",
+                  text: "Display before translation",
+                },
               ],
             },
           ]);
@@ -81,16 +91,66 @@ export default function App() {
 
     // attach event handler to custom context menu item
 
-    connectorRef.current.attachContextMenuClickEvent(
-      "onClickCustomItem",
-      function () {
-        // !currently not working
-        console.log("onClickCustomItem");
-        connectorRef.current.executeMethod("InputText", [
-          "clicked: onClickItem2",
-        ]);
+    connectorRef.current.attachEvent(
+      "onContextMenuClick",
+      function (id: string) {
+        switch (id) {
+          case "onDisplayBeforeTranslation": {
+            const fileType = handleGetDocumentType(fileUrl);
+            switch (fileType) {
+              case "docx": {
+                connectorRef.current.callCommand(() => {
+                  const oDocument = Api.GetDocument();
+                  const oRange = oDocument.GetRangeBySelect();
+                  oRange.SetColor(26, 171, 127);
+                });
+                break;
+              }
+              case "xlsx": {
+                connectorRef.current.callCommand(() => {
+                  const oWorksheet = Api.GetActiveSheet();
+                  const oRange = oWorksheet.GetRange("B1");
+                  const oCharacters = oRange.GetCharacters();
+                  const oFont = oCharacters.GetFont();
+                  const oColor = Api.CreateColorFromRGB(26, 171, 127);
+                  oFont.SetColor(oColor);
+                });
+                break;
+              }
+
+              case "pptx": {
+                connectorRef.current.callCommand(() => {
+                  const oPresentation = Api.GetPresentation();
+                });
+
+                break;
+              }
+              default:
+                console.log("Invalid file type");
+            }
+            break;
+          }
+          case "onDoSomething":
+            connectorRef.current.executeMethod("InputText", [
+              "clicked on Do something",
+            ]);
+            break;
+          default:
+            console.log(id);
+        }
       }
     );
+
+    // connectorRef.current.attachEvent(
+    //   "onEnableMouseEvent",
+    //   function (isEnable: boolean) {
+    //     console.log(isEnable);
+    //     const _frames = document.getElementsByTagName("iframe");
+    //     if (_frames && _frames[0]) {
+    //       _frames[0].style.pointerEvents = isEnable ? "auto" : "none";
+    //     }
+    //   }
+    // );
   };
   const getSelectedText = async () => {
     connectorRef.current.executeMethod(
@@ -109,13 +169,13 @@ export default function App() {
       <div style={{ width: "80%", height: "100vh", position: "relative" }}>
         <DocumentEditor
           id="docxEditor"
-          documentServerUrl="http://172.21.16.1:82/"
+          documentServerUrl="http://172.21.16.1:86/"
           config={{
             document: {
-              fileType: "docx",
+              fileType: "xlsx",
               key: id,
               title: "Example Document Title",
-              url: "http://192.168.1.179:7002/Pat01_JE.docx",
+              url: fileUrl,
             },
             editorConfig: {
               plugins: {},
