@@ -1,8 +1,9 @@
 import { DocumentEditor } from "@onlyoffice/document-editor-react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 import { v4 as uuidv4 } from "uuid";
 import { saveAs } from "file-saver";
+import axios from "axios";
 const onLoadComponentError = function (
   errorCode: number,
   errorDescription: string
@@ -75,7 +76,11 @@ export default function App() {
               guid: connectorRef.current.guid,
               items: [
                 {
-                  id: "onClickCustomItem",
+                  id: "onRemoveSelected",
+                  text: "Remove selected content",
+                },
+                {
+                  id: "onDoSomething",
                   text: "Do something",
                 },
                 {
@@ -178,7 +183,6 @@ export default function App() {
               url: fileUrl,
             },
             editorConfig: {
-              plugins: {},
               user: {
                 id: id,
                 name: "User",
@@ -186,6 +190,7 @@ export default function App() {
               customization: {
                 compactToolbar: true,
                 hideRulers: true,
+                hideRightMenu: true,
                 features: {
                   spellcheck: {
                     mode: false,
