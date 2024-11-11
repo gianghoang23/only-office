@@ -3,7 +3,6 @@ import { useRef } from "react";
 
 import { v4 as uuidv4 } from "uuid";
 import { saveAs } from "file-saver";
-import axios from "axios";
 const onLoadComponentError = function (
   errorCode: number,
   errorDescription: string
@@ -143,19 +142,17 @@ export default function App() {
               }
               case "xlsx": {
                 connectorRef.current.callCommand(() => {
-                  const oWorksheet = Api.GetActiveSheet();
-                  const oRange = oWorksheet.GetRange("B1");
-                  const oCharacters = oRange.GetCharacters();
-                  const oFont = oCharacters.GetFont();
-                  const oColor = Api.CreateColorFromRGB(26, 171, 127);
-                  oFont.SetColor(oColor);
+                  Api.GetSelection().SetFontColor(
+                    Api.CreateColorFromRGB(26, 171, 127)
+                  );
                 });
                 break;
               }
 
               case "pptx": {
                 connectorRef.current.callCommand(() => {
-                  const oPresentation = Api.GetPresentation();
+                  const oPresentation =
+                    connectorRef.current.Api.GetPresentation();
                 });
 
                 break;
@@ -204,7 +201,7 @@ export default function App() {
       <div style={{ width: "80%", height: "100vh", position: "relative" }}>
         <DocumentEditor
           id="docxEditor"
-          documentServerUrl="http://172.21.16.1:86/"
+          documentServerUrl="http://172.19.192.1:86/"
           config={{
             document: {
               fileType: handleGetDocumentType(fileUrl),
