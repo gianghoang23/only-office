@@ -24,7 +24,7 @@ const onLoadComponentError = function (
 };
 
 export default function App() {
-  const fileUrl = "http://192.168.1.179:7002/Sổ làm việc1.xlsx";
+  const fileUrl = "http://192.168.1.179:7002/Thisisapen.docx";
 
   const connectorRef = useRef<any>();
 
@@ -64,13 +64,12 @@ export default function App() {
     const editor = window.DocEditor.instances["docxEditor"];
     const connector = editor.createConnector();
     connectorRef.current = connector;
-    console.log(connectorRef.current);
     // add option to context menu
     connectorRef.current.attachEvent(
       "onContextMenuShow",
       function (options: { type: string }) {
         if (!options) return;
-        if (options.type === "Selection") {
+        if (options.type) {
           connectorRef.current.executeMethod("AddContextMenuItem", [
             {
               guid: connectorRef.current.guid,
@@ -102,12 +101,43 @@ export default function App() {
         switch (id) {
           case "onDisplayBeforeTranslation": {
             const fileType = handleGetDocumentType(fileUrl);
+            Asc.scope = {
+              fileType,
+              connectorRef: connectorRef.current,
+              textCondition: {
+                Numbering: true,
+                Math: true,
+                NewLineSeparator: "\r",
+                TabSymbol: "\t",
+                NewLineParagraph: true,
+                TableCellSeparator: "\t",
+                TableRowSeparator: "\r\n",
+                ParaSeparator: "\r\n",
+              },
+            };
+
             switch (fileType) {
               case "docx": {
                 connectorRef.current.callCommand(() => {
                   const oDocument = Api.GetDocument();
-                  const oRange = oDocument.GetRangeBySelect();
-                  oRange.SetColor(26, 171, 127);
+                  console.log(oDocument);
+                  const oRangeSelected = oDocument.GetRangeBySelect();
+                  const selectedText = oRangeSelected.GetText(
+                    Asc.scope.textCondition
+                  );
+                  const oRangeSentence = oDocument.GetRange(
+                    oRangeSelected.Start - 20 > 0
+                      ? oRangeSelected.Start - 20
+                      : 0,
+                    oRangeSelected.End
+                  );
+                  const sentenceText = oRangeSentence.GetText(
+                    Asc.scope.textCondition
+                  );
+                  oRangeSentence.SetHighlight("lightGray");
+
+                  console.log(selectedText);
+                  console.log(sentenceText);
                 });
                 break;
               }
@@ -177,7 +207,7 @@ export default function App() {
           documentServerUrl="http://172.21.16.1:86/"
           config={{
             document: {
-              fileType: "xlsx",
+              fileType: handleGetDocumentType(fileUrl),
               key: id,
               title: "Example Document Title",
               url: fileUrl,
