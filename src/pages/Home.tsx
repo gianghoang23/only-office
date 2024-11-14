@@ -1,5 +1,5 @@
 import { DocumentEditor } from "@onlyoffice/document-editor-react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { v4 as uuidv4 } from "uuid";
 import { saveAs } from "file-saver";
@@ -23,9 +23,23 @@ const onLoadComponentError = function (
 };
 
 export default function App() {
-  const fileUrl = "http://192.168.1.179:7002/Thisisapen.docx";
-
+  const fileUrl =
+    "http://192.168.1.179:7002/result_ef Description of the Drawings_30_53_transed.docx";
+  const mouseRef = useRef<any>();
   const connectorRef = useRef<any>();
+
+  useEffect(() => {
+    setTimeout(() => {
+      const iframe = document.querySelector("iframe");
+
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.addEventListener("mousemove", (event) => {
+          console.log("clientX", event.clientX);
+          console.log("clientY", event.clientY);
+        });
+      }
+    }, 100);
+  }, []);
 
   const handleGetDocumentType = (docUrl: string) => {
     return docUrl.substring(docUrl.lastIndexOf(".") + 1);
@@ -119,33 +133,54 @@ export default function App() {
               case "docx": {
                 connectorRef.current.callCommand(() => {
                   const oDocument = Api.GetDocument();
-                  console.log(oDocument);
                   const oRangeSelected = oDocument.GetRangeBySelect();
-                  const selectedText = oRangeSelected.GetText(
-                    Asc.scope.textCondition
-                  );
-                  const oRangeSentence = oDocument.GetRange(
-                    oRangeSelected.Start - 20 > 0
-                      ? oRangeSelected.Start - 20
-                      : 0,
-                    oRangeSelected.End
-                  );
-                  const sentenceText = oRangeSentence.GetText(
-                    Asc.scope.textCondition
-                  );
-                  oRangeSentence.SetHighlight("lightGray");
-
-                  console.log(selectedText);
-                  console.log(sentenceText);
+                  const startSentence = oRangeSelected.Start;
+                  const endSentence = oRangeSelected.End;
+                  let i = 0;
+                  let j = 0;
+                  while (
+                    oDocument
+                      .GetRange(startSentence - i, startSentence - i + 1)
+                      .GetText(Asc.scope.textCondition) !== "." &&
+                    startSentence - i > 0
+                  ) {
+                    i++;
+                  }
+                  while (
+                    oDocument
+                      .GetRange(endSentence + j, endSentence + j + 1)
+                      .GetText(Asc.scope.textCondition) !== "." &&
+                    oDocument
+                      .GetRange(endSentence - 1, endSentence)
+                      .GetText(Asc.scope.textCondition) !== "."
+                  ) {
+                    j++;
+                  }
+                  oDocument
+                    .GetRange(
+                      startSentence - i >= 0 ? startSentence - i : 0,
+                      endSentence + j
+                    )
+                    .SetHighlight("lightGray");
                 });
                 break;
               }
               case "xlsx": {
-                connectorRef.current.callCommand(() => {
-                  Api.GetSelection().SetFontColor(
-                    Api.CreateColorFromRGB(26, 171, 127)
-                  );
-                });
+                connectorRef.current.executeMethod(
+                  "GetSelectedText",
+                  [],
+                  function (selectedText: string) {
+                    Asc.scope.selectedText = selectedText;
+                    connectorRef.current.callCommand(() => {
+                      const oRange = Api.GetSelection();
+                      console.log(Asc.scope.selectedText);
+                      console.log(oRange.Value);
+                      const oRange2 = Api.GetRange("A1:C1");
+                      console.log(oRange2);
+                    });
+                  }
+                );
+
                 break;
               }
 
@@ -163,9 +198,47 @@ export default function App() {
             break;
           }
           case "onDoSomething":
-            connectorRef.current.executeMethod("InputText", [
-              "clicked on Do something",
-            ]);
+            connectorRef.current.callCommand(() => {
+              const oDocument = Api.GetDocument();
+              console.log(Asc.scope);
+              const oRangeSelected = oDocument.GetRangeBySelect();
+              const startSentence = oRangeSelected.Start;
+              const endSentence = oRangeSelected.End;
+              let i = 0;
+              let j = 0;
+              while (
+                oDocument
+                  .GetRange(startSentence - i - 1, startSentence - i)
+                  .GetText(Asc.scope?.textCondition) !== "." &&
+                startSentence - i > 0
+              ) {
+                i++;
+              }
+              while (
+                oDocument
+                  .GetRange(endSentence + j, endSentence + j + 1)
+                  .GetText(Asc.scope.textCondition) !== "." &&
+                oDocument
+                  .GetRange(endSentence - 1, endSentence)
+                  .GetText(Asc.scope.textCondition) !== "."
+              ) {
+                if (
+                  oDocument
+                    .GetRange(endSentence + j, endSentence + j + 1)
+                    .GetText(Asc.scope.textCondition) === "\n"
+                ) {
+                  console.log("end sentence");
+                }
+                j++;
+              }
+              oDocument
+                .GetRange(startSentence - i, endSentence + j)
+                .SetHighlight("none");
+            });
+            break;
+
+          case "onRemoveSelected":
+            console.log(Asc);
             break;
           default:
             console.log(id);
@@ -201,7 +274,7 @@ export default function App() {
       <div style={{ width: "80%", height: "100vh", position: "relative" }}>
         <DocumentEditor
           id="docxEditor"
-          documentServerUrl="http://172.19.192.1:86/"
+          documentServerUrl="http://localhost:86/"
           config={{
             document: {
               fileType: handleGetDocumentType(fileUrl),
@@ -243,7 +316,14 @@ export default function App() {
         } */}
       </div>
 
-      <div style={{ width: "20%" }}>
+      <div style={{ width: "20%" }} id="left-content">
+        <canvas
+          id="myCanvas"
+          width="500"
+          height="500"
+          style={{ border: "1px solid black" }}
+        ></canvas>
+
         <button
           style={{ background: "royalBlue", color: "white", margin: "30px" }}
           onClick={getFile}
@@ -251,7 +331,30 @@ export default function App() {
           Download Document
         </button>
         <button onClick={getSelectedText}>Get Selected text</button>
-
+        <button
+          onClick={() => {
+            connectorRef.current.executeMethod(
+              "GetCurrentSentence",
+              ["entirely"],
+              function (res: string) {
+                console.log(res);
+              }
+            );
+          }}
+        >
+          Get Current Sentence
+        </button>
+        <button
+          onClick={() => {
+            connectorRef.current.executeMethod("MouseMoveWindow", [
+              connectorRef.current.editorInfo.guid,
+              70,
+              40,
+            ]);
+          }}
+        >
+          Mouse Move
+        </button>
         <button
           onClick={() => {
             connectorRef.current.executeMethod("InputText", [
