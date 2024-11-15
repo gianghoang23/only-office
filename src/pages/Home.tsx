@@ -1,5 +1,5 @@
 import { DocumentEditor } from "@onlyoffice/document-editor-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { v4 as uuidv4 } from "uuid";
 import { saveAs } from "file-saver";
@@ -27,18 +27,17 @@ export default function App() {
     "http://192.168.1.179:7002/result_ef Description of the Drawings_30_53_transed.docx";
   const mouseRef = useRef<any>();
   const connectorRef = useRef<any>();
-
+  const [originalText, setOriginalText] = useState<string>("");
   useEffect(() => {
-    setTimeout(() => {
-      const iframe = document.querySelector("iframe");
-
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.addEventListener("mousemove", (event) => {
-          console.log("clientX", event.clientX);
-          console.log("clientY", event.clientY);
-        });
+    window.addEventListener("message", function (event) {
+      if (event.data.type === "mousePosition") {
+        const mouseX = event.data.x;
+        const mouseY = event.data.y;
+        console.log(
+          `Mouse position received from iframe: X: ${mouseX}, Y: ${mouseY}`
+        );
       }
-    }, 100);
+    });
   }, []);
 
   const handleGetDocumentType = (docUrl: string) => {
@@ -61,22 +60,11 @@ export default function App() {
     );
   };
 
-  const replaceText = () => {
-    connectorRef.current.executeMethod("RemoveSelectedContent");
-    return;
-    connectorRef.current.executeMethod("SearchAndReplace", [
-      {
-        searchString: "This is a pen.",
-        replaceString: "text2",
-        matchCase: true,
-      },
-    ]);
-  };
-
   const onDocumentReady = () => {
     const editor = window.DocEditor.instances["docxEditor"];
     const connector = editor.createConnector();
     connectorRef.current = connector;
+    console.log(connector);
     // add option to context menu
     connectorRef.current.attachEvent(
       "onContextMenuShow",
@@ -132,27 +120,40 @@ export default function App() {
             switch (fileType) {
               case "docx": {
                 connectorRef.current.callCommand(() => {
+                  const endOfSentenceSymbols = [".", "!", "?", "。", "\r\n"];
                   const oDocument = Api.GetDocument();
                   const oRangeSelected = oDocument.GetRangeBySelect();
+                  console.log(oRangeSelected);
                   const startSentence = oRangeSelected.Start;
                   const endSentence = oRangeSelected.End;
                   let i = 0;
                   let j = 0;
                   while (
-                    oDocument
-                      .GetRange(startSentence - i, startSentence - i + 1)
-                      .GetText(Asc.scope.textCondition) !== "." &&
+                    !endOfSentenceSymbols.includes(
+                      oDocument
+                        .GetRange(startSentence - i, startSentence - i + 1)
+                        .GetText(Asc.scope.textCondition)
+                    ) &&
                     startSentence - i > 0
                   ) {
+                    // console.log(
+                    //   oDocument
+                    //     .GetRange(startSentence - i, startSentence - i + 1)
+                    //     .GetText(Asc.scope.textCondition) === "\r\n"
+                    // );
                     i++;
                   }
                   while (
-                    oDocument
-                      .GetRange(endSentence + j, endSentence + j + 1)
-                      .GetText(Asc.scope.textCondition) !== "." &&
-                    oDocument
-                      .GetRange(endSentence - 1, endSentence)
-                      .GetText(Asc.scope.textCondition) !== "."
+                    !endOfSentenceSymbols.includes(
+                      oDocument
+                        .GetRange(endSentence + j, endSentence + j + 1)
+                        .GetText(Asc.scope.textCondition)
+                    ) &&
+                    !endOfSentenceSymbols.includes(
+                      oDocument
+                        .GetRange(endSentence - 1, endSentence)
+                        .GetText(Asc.scope.textCondition)
+                    )
                   ) {
                     j++;
                   }
@@ -198,43 +199,17 @@ export default function App() {
             break;
           }
           case "onDoSomething":
-            connectorRef.current.callCommand(() => {
-              const oDocument = Api.GetDocument();
-              console.log(Asc.scope);
-              const oRangeSelected = oDocument.GetRangeBySelect();
-              const startSentence = oRangeSelected.Start;
-              const endSentence = oRangeSelected.End;
-              let i = 0;
-              let j = 0;
-              while (
-                oDocument
-                  .GetRange(startSentence - i - 1, startSentence - i)
-                  .GetText(Asc.scope?.textCondition) !== "." &&
-                startSentence - i > 0
-              ) {
-                i++;
+            connectorRef.current.callCommand(
+              async () => {
+                const result = 3;
+                console.log(result);
+                return { data: result };
+              },
+              (result: any) => {
+                console.log(result);
               }
-              while (
-                oDocument
-                  .GetRange(endSentence + j, endSentence + j + 1)
-                  .GetText(Asc.scope.textCondition) !== "." &&
-                oDocument
-                  .GetRange(endSentence - 1, endSentence)
-                  .GetText(Asc.scope.textCondition) !== "."
-              ) {
-                if (
-                  oDocument
-                    .GetRange(endSentence + j, endSentence + j + 1)
-                    .GetText(Asc.scope.textCondition) === "\n"
-                ) {
-                  console.log("end sentence");
-                }
-                j++;
-              }
-              oDocument
-                .GetRange(startSentence - i, endSentence + j)
-                .SetHighlight("none");
-            });
+            );
+
             break;
 
           case "onRemoveSelected":
