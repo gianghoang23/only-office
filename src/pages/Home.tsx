@@ -22,7 +22,7 @@ const onLoadComponentError = function (
 };
 
 export default function App() {
-  const fileUrl = "http://192.168.1.179:7002/translated_aimedical.docx";
+  const fileUrl = "http://192.168.1.7:8002/sample.docx";
   const mouseRef = useRef<any>();
   const connectorRef = useRef<any>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -134,11 +134,11 @@ export default function App() {
                     oDocument.SelectCurrentWord();
                     oRangeSelected = oDocument.GetRangeBySelect();
                   }
-                  oDocument.RemoveSelection();
                   const startContext = oRangeSelected.Start;
                   const endContext = oRangeSelected.End;
                   let i = 0;
                   let j = 0;
+
                   while (
                     !endOfSentenceSymbols.includes(
                       oDocument
@@ -150,65 +150,22 @@ export default function App() {
                       .GetRange(startContext - i - 1, startContext - i)
                       .GetText(Asc.scope?.textCondition).length <= 1
                   ) {
-                    console.log(
-                      oDocument
-                        .GetRange(startContext - i - 1, startContext - i)
-                        .GetText(Asc.scope?.textCondition)
-                    );
                     i++;
-                    console.log(
-                      oDocument
-                        .GetRange(startContext - i - 1, startContext - i)
-                        .GetText(Asc.scope?.textCondition)
-                    );
                   }
                   while (
                     !endOfSentenceSymbols.includes(
                       oDocument
                         .GetRange(endContext + j, endContext + j + 1)
                         .GetText(Asc.scope.textCondition)
-                    ) &&
-                    !endOfSentenceSymbols.includes(
-                      oDocument
-                        .GetRange(endContext - 1, endContext)
-                        .GetText(Asc.scope.textCondition)
-                    ) &&
-                    oDocument
-                      .GetRange(endContext + j, endContext + j + 1)
-                      .GetText(Asc.scope.textCondition).length <= 1
+                    )
                   ) {
                     j++;
                   }
-
                   const cleanText = (text: string) =>
                     text.replace(/\n/g, "").replace(/\t/g, "");
-                  const context = cleanText(
-                    oDocument
-                      .GetRange(startContext - i, endContext + j)
-                      .GetText(Asc.scope.textCondition)
-                  );
-                  console.log(oRangeSelected.GetText(Asc.scope.textCondition));
-                  const selectedText = cleanText(
-                    oRangeSelected.GetText(Asc.scope.textCondition)
-                  );
-                  const extendedRange = context.split(selectedText);
-                  console.log("hightlightRange:", {
-                    start: oRangeSelected.Start - extendedRange[0].length,
-                    end: oRangeSelected.End + extendedRange[1].length,
-                  });
-                  console.log(
-                    oDocument
-                      .GetRange(
-                        oRangeSelected.Start - extendedRange[0].length,
-                        oRangeSelected.End + extendedRange[1].length
-                      )
-                      .GetText(Asc.scope.textCondition)
-                  );
+
                   oDocument
-                    .GetRange(
-                      oRangeSelected.Start - extendedRange[0].length,
-                      oRangeSelected.End + extendedRange[1].length
-                    )
+                    .GetRange(oRangeSelected.Start - i, oRangeSelected.End + j)
                     .SetHighlight("yellow");
                 });
                 break;
